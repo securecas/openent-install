@@ -1,0 +1,84 @@
+buildscript {
+  repositories {
+    mavenLocal()
+      maven {
+        url "https://maven.opendigitaleducation.com/nexus/content/groups/public"
+      }
+  }
+  dependencies {
+    classpath "fr.wseduc:springboard-plugin:$springboardPluginVersion"
+  }
+}
+apply plugin: 'scala'
+apply plugin: 'springboard'
+
+if (!hasProperty('odeUsername')) {
+  ext.odeUsername = ''
+}
+if (!hasProperty('odePassword')) {
+  ext.odePassword = ''
+}
+
+configurations {
+  deployment {
+    transitive = false
+ }
+ help {
+    transitive = false
+ }
+ i18n {
+ }
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+dependencies {
+    testCompile "org.entcore:tests:$entCoreVersion"
+    help "com.opendigitaleducation:application-help:$applicationHelpVersion"
+}
+
+repositories{
+  mavenLocal()
+  maven {
+    url "https://maven.opendigitaleducation.com/nexus/content/groups/public"
+  }
+  maven {
+    url "https://maven.opendigitaleducation.com/nexus/content/repositories/ode-releases"
+    credentials {
+      username "${odeUsername}"
+      password "${odePassword}"
+    }
+  }
+  maven {
+    url "https://maven.opendigitaleducation.com/nexus/content/repositories/ode-snapshots"
+    credentials {
+      username "${odeUsername}"
+      password "${odePassword}"
+    }
+  }
+  maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+  mavenCentral()
+}
+
+// empty task to avoid failure if no subprojets are defined
+task copyMod {}
+
+subprojects {
+	afterEvaluate { project ->
+		project.tasks['copyMod'].doLast {
+			file('mods').mkdir()
+			copy {
+				into 'mods'
+				from "${project.name}/build/mods"
+			}
+		}
+	}
+}
+
+clean.doFirst {
+  delete "mods"
+  delete "ent-core.json"
+  delete "ent-core.embedded.json"
+}
